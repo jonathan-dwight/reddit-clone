@@ -99,6 +99,7 @@ export class UserResolver {
         // set a cookie on the user
         // keep them logged in
         req.session!.userId = user.id;
+        // this allows us to put anything in the cookie
 
         return { user }
     }

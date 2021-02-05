@@ -26,6 +26,12 @@ const main = async () => {
     const redisClient = redis.createClient();
 
     // can use touch to reset redis
+    // redis is a key value store
+    // express-session will set a cookie on the browser - signed version of key
+    // when a user makes a request value of cookie will be sent to the server
+    // sever unsigns it with the secret = then turns cookie into secret
+    // then it makes a request to redis
+    // store in request.session
     app.use(
         session({
             name: "qid",
