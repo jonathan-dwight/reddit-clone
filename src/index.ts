@@ -12,7 +12,8 @@ import { UserResolver } from "./resolvers/user";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import { MyContext } from "./types";
+// import { MyContext } from "./types";
+import cors from 'cors';
 
 // require('dotenv').config();
 
@@ -32,6 +33,15 @@ const main = async () => {
     // sever unsigns it with the secret = then turns cookie into secret
     // then it makes a request to redis
     // store in request.session
+
+
+    app.use(
+        // can declare route but this will add to all routes
+        cors({
+            origin: "http://localhost:3000",
+            credentials: true,
+        })
+    );
     app.use(
         session({
             name: "qid",
@@ -56,10 +66,13 @@ const main = async () => {
             resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+        context: ({ req, res }) => ({ em: orm.em, req, res }),
     });
 
-    apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({
+        app,
+        cors: false,
+    });
 
     app.listen(5000, () => {
         console.log("server started on localhost:5000");
