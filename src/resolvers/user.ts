@@ -63,7 +63,7 @@ export class UserResolver {
                 }]
             }
         }
-        if (options.username.length <= 2) {
+        if (options.password.length <= 2) {
             return {
                 errors: [
                     {
