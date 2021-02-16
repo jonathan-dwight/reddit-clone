@@ -79,8 +79,20 @@ export class UserResolver {
             username: options.username,
             password: hashPassword,
         });
-
+        // let user;
         try {
+            // QUERY BUILDER because his code was breaking and mine isting
+            // import { Entitiy Manager } from "@mikro-orm/postgreSQL"
+            // const [user] = await (em as Entity Manager).createQueryBuilder(User).getKnexQuery().insert(
+            // {
+            // username: options.username,
+            // password: hashedPassword,
+            // created_at: newDate(),
+            // updated_at: newDate(), 
+            // })
+            // .returning(*);
+            // user = result[0];
+            // we would get rid off the const user
             await em.persistAndFlush(user);
         } catch(error) {
             if (error.code === "23505" || error.detail.includes('already exists')) {
