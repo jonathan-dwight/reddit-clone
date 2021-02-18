@@ -1,15 +1,24 @@
 import { MyContext } from "../types";
 import { User } from "../entities/User";
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
-import argon2 from 'argon2';
-
+import {
+    Arg,
+    Ctx,
+    Field,
+    InputType,
+    Mutation,
+    ObjectType,
+    Query,
+    Resolver,
+} from "type-graphql";
+import argon2 from "argon2";
+import { COOKIE_NAME } from "../constants";
 
 @InputType()
 class UsernamePasswordInput {
     @Field(() => String)
-    username: string
+    username: string;
     @Field(() => String)
-    password: string
+    password: string;
 }
 
 @ObjectType()
@@ -21,29 +30,25 @@ class FieldError {
     message: string;
 }
 
-
 @ObjectType()
 class UserResponse {
     // return user or errors if present
     @Field(() => [FieldError], { nullable: true })
-    errors?: FieldError[]
+    errors?: FieldError[];
 
     @Field(() => User, { nullable: true })
-    user?: User
+    user?: User;
 }
-
 
 @Resolver()
 export class UserResolver {
     @Query(() => User, { nullable: true })
-    async me(
-        @Ctx() { req, em }: MyContext
-    ) {
+    async me(@Ctx() { req, em }: MyContext) {
         if (!req.session.userId) {
             return null;
         }
 
-        const user = await em.findOne(User, { id: req.session.userId })
+        const user = await em.findOne(User, { id: req.session.userId });
         return user;
     }
 
@@ -54,14 +59,15 @@ export class UserResolver {
         options: UsernamePasswordInput,
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
-
         if (options.username.length <= 2) {
             return {
-                errors: [{
-                    field: "username",
-                    message: "length must be greater than 2"
-                }]
-            }
+                errors: [
+                    {
+                        field: "username",
+                        message: "length must be greater than 2",
+                    },
+                ],
+            };
         }
         if (options.password.length <= 2) {
             return {
@@ -88,23 +94,28 @@ export class UserResolver {
             // username: options.username,
             // password: hashedPassword,
             // created_at: newDate(),
-            // updated_at: newDate(), 
+            // updated_at: newDate(),
             // })
             // .returning(*);
             // user = result[0];
             // we would get rid off the const user
             await em.persistAndFlush(user);
-        } catch(error) {
-            if (error.code === "23505" || error.detail.includes('already exists')) {
+        } catch (error) {
+            if (
+                error.code === "23505" ||
+                error.detail.includes("already exists")
+            ) {
                 // duplicate username errpr
                 return {
-                    errors: [{
-                        field: 'username',
-                        message: 'username already taken'
-                    }]
-                }
+                    errors: [
+                        {
+                            field: "username",
+                            message: "username already taken",
+                        },
+                    ],
+                };
             }
-            console.log('message: ', error.message)
+            console.log("message: ", error.message);
         }
 
         // store user id
@@ -113,7 +124,7 @@ export class UserResolver {
         req.session!.userId = user.id;
         // this allows us to put anything in the cookie
 
-        return { user }
+        return { user };
     }
 
     @Mutation(() => UserResponse)
@@ -123,16 +134,16 @@ export class UserResolver {
         options: UsernamePasswordInput,
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, { username: options.username })
+        const user = await em.findOne(User, { username: options.username });
         if (!user) {
             return {
                 errors: [
                     {
                         field: "username",
-                        message: "username doesn't exist"
+                        message: "username doesn't exist",
                     },
-                ]
-            }
+                ],
+            };
         }
         const valid = await argon2.verify(user.password, options.password);
         if (!valid) {
@@ -140,9 +151,9 @@ export class UserResolver {
                 errors: [
                     {
                         field: "password",
-                        message: "incorrect password"
+                        message: "incorrect password",
                     },
-                ]
+                ],
             };
         }
 
@@ -152,6 +163,19 @@ export class UserResolver {
             user,
         };
     }
+
+    @Mutation(() => Boolean)
+    logout(@Ctx() { req, res }: MyContext) {
+        
+        return new Promise((resolve) =>
+            req.session.destroy((err: any) => {
+                res.clearCookie(COOKIE_NAME); // clears cookie no matter what
+                if (err) {
+                    resolve(false);
+                    return;
+                }
+                resolve(true);
+            })
+        );
+    }
 }
-
-

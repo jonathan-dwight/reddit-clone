@@ -28,6 +28,7 @@ exports.UserResolver = void 0;
 const User_1 = require("../entities/User");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
+const constants_1 = require("../constants");
 let UsernamePasswordInput = class UsernamePasswordInput {
 };
 __decorate([
@@ -81,10 +82,12 @@ let UserResolver = class UserResolver {
         return __awaiter(this, void 0, void 0, function* () {
             if (options.username.length <= 2) {
                 return {
-                    errors: [{
+                    errors: [
+                        {
                             field: "username",
-                            message: "length must be greater than 2"
-                        }]
+                            message: "length must be greater than 2",
+                        },
+                    ],
                 };
             }
             if (options.password.length <= 2) {
@@ -106,15 +109,18 @@ let UserResolver = class UserResolver {
                 yield em.persistAndFlush(user);
             }
             catch (error) {
-                if (error.code === "23505" || error.detail.includes('already exists')) {
+                if (error.code === "23505" ||
+                    error.detail.includes("already exists")) {
                     return {
-                        errors: [{
-                                field: 'username',
-                                message: 'username already taken'
-                            }]
+                        errors: [
+                            {
+                                field: "username",
+                                message: "username already taken",
+                            },
+                        ],
                     };
                 }
-                console.log('message: ', error.message);
+                console.log("message: ", error.message);
             }
             req.session.userId = user.id;
             return { user };
@@ -128,9 +134,9 @@ let UserResolver = class UserResolver {
                     errors: [
                         {
                             field: "username",
-                            message: "username doesn't exist"
+                            message: "username doesn't exist",
                         },
-                    ]
+                    ],
                 };
             }
             const valid = yield argon2_1.default.verify(user.password, options.password);
@@ -139,9 +145,9 @@ let UserResolver = class UserResolver {
                     errors: [
                         {
                             field: "password",
-                            message: "incorrect password"
+                            message: "incorrect password",
                         },
-                    ]
+                    ],
                 };
             }
             req.session.userId = user.id;
@@ -149,6 +155,16 @@ let UserResolver = class UserResolver {
                 user,
             };
         });
+    }
+    logout({ req, res }) {
+        return new Promise((resolve) => req.session.destroy((err) => {
+            res.clearCookie(constants_1.COOKIE_NAME);
+            if (err) {
+                resolve(false);
+                return;
+            }
+            resolve(true);
+        }));
     }
 };
 __decorate([
@@ -174,6 +190,13 @@ __decorate([
     __metadata("design:paramtypes", [UsernamePasswordInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "login", null);
+__decorate([
+    type_graphql_1.Mutation(() => Boolean),
+    __param(0, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UserResolver.prototype, "logout", null);
 UserResolver = __decorate([
     type_graphql_1.Resolver()
 ], UserResolver);
